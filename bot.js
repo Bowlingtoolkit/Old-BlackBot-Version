@@ -29,6 +29,109 @@ const prefix = ">";
 let done = {};
 const Token = process.env.BOT_TOKEN
 const say = JSON.parse(fs.readFileSync('./say.json' , 'utf8'));
+
+
+ 
+client.on("message", message => {
+	
+    if (message.author.bot || !message.guild) return;
+    let score;
+   
+    if (message.guild) {
+      score = client.getScore.get(message.author.id, message.guild.id);
+      if (!score) {
+        score = { id: `${message.guild.id}-${message.author.id}`, user: message.author.id, guild: message.guild.id, points: 0, level: 1 };
+      }
+      score.points++;
+      const curLevel = Math.floor(0.1 * Math.sqrt(score.points));
+      client.setScore.run(score);
+    }
+    if (message.content.indexOf(prefix) !== 0) return;
+ 
+    const args = message.content.slice(prefix.length).trim().split(/ +/g);
+    const command = args.shift().toLowerCase();
+ 
+    if(command === "mypoints") {
+      return message.reply(`You currently have ${score.points} points and are level ${score.level}!`);
+    }
+   
+    if(command === "point") {
+	   let embed = new Discord.RichEmbed()
+	   .setTitle(`لم يتم تسجيل أي نقطة حتى الأن 
+ أمثلة للأوامر: `)
+	  .setDescription(`
+:small_orange_diamond: .points ${client.user} 1 لزيادة نقاط شخص معين 
+:small_orange_diamond: .-points ${client.user} 1 لأزالة نقطة من شخص معين 
+:small_orange_diamond: .points ${client.user} 0 لتصفير نقاط شخص معين 
+:small_orange_diamond: .points reset لتصفير جميع النقاط`)
+      if(!message.author.id === message.guild.owner) return message.reply("You're not the boss of me, you can't do that!");
+      const user = message.mentions.users.first() || client.users.get(args[0]);
+      if(!user) return message.reply("You must mention someone or give their ID!");
+	              let userscore = client.getScore.get(user.id, message.guild.id);      
+
+      const pointsToAdd = parseInt(args[1], 10);
+      if(!pointsToAdd) return message.reply("You didn't tell me how many points to give...");
+	    if(pointsToAdd === '0') {
+                userscore.points = 0
+	         message.channel.send(`${user.tag} has reset his points and now stands at ${userscore.points} points.`)
+	    }
+	    
+      if (!userscore) {
+        userscore = { id: `${message.guild.id}-${user.id}`, user: user.id, guild: message.guild.id, points: 0, level: 1 };
+      }
+      userscore.points += pointsToAdd;
+      let userLevel = Math.floor(0.1 * Math.sqrt(score.points));
+      userscore.level = userLevel;
+      client.setScore.run(userscore);
+   
+      return message.channel.send(`${user.tag} has received ${pointsToAdd} points and now stands at ${userscore.points} points.`);
+    }
+   
+	    if(command === "-point") {
+	   let embed = new Discord.RichEmbed()
+	   .setTitle(`لم يتم تسجيل أي نقطة حتى الأن 
+ أمثلة للأوامر: `)
+	  .setDescription(`
+:small_orange_diamond: .points ${client.user} 1 To Add Points For User 
+:small_orange_diamond: .-points ${client.user} 1 To Discount Points For User
+:small_orange_diamond: .points ${client.user} 0 To Reset The Points For Only One User
+:small_orange_diamond: .points reset To Reset All Users Pointes`)
+      if(!message.author.id === message.guild.owner) return message.reply("You're not the boss of me, you can't do that!");
+      const user = message.mentions.users.first() || client.users.get(args[0]);
+      if(!user) return message.reply("You must mention someone or give their ID!");
+	              let userscore = client.getScore.get(user.id, message.guild.id);      
+
+      const pointsToAdd = parseInt(args[1], 10);
+      if(!pointsToAdd) return message.reply("You didn't tell me how many points to give...");
+
+      if (!userscore) {
+        userscore = { id: `${message.guild.id}-${user.id}`, user: user.id, guild: message.guild.id, points: 0, level: 1 };
+      }
+      userscore.points -= pointsToAdd;
+      let userLevel = Math.floor(0.1 * Math.sqrt(score.points));
+      userscore.level = userLevel;
+      client.setScore.run(userscore);
+   
+      return message.channel.send(`${user.tag} has pulled ${pointsToAdd} points and now stands at ${userscore.points} points.`);
+    }
+	
+    if(command === "points") {
+      const top10 = sql.prepare("SELECT * FROM scores WHERE guild = ? ORDER BY points DESC LIMIT 10;").all(message.guild.id);
+      const embed = new Discord.RichEmbed()
+        .setTitle("**TOP 10 TEXT** :speech_balloon:")
+        .setAuthor('📋 Guild Score Leaderboards', message.guild.iconURL)
+        .setColor(0x00AE86);
+ 
+      for(const data of top10) {
+        embed.addField(client.users.get(data.user).tag, `XP: \`${data.points}\` | LVL: \`${data.level}\``);
+      }
+      return message.channel.send({embed});
+    }
+       if(command === "points reset") {
+           userscore = {}
+	       message.channel.send(`The Points Has Been Reset`)
+  });
+ //private points code
 //Perfect Say Code
 client.on('message', async message => {
     let messageArray = message.content.split(" ");
